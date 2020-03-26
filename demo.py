@@ -9,19 +9,22 @@ FPS = 60
 window_width = 1280
 window_height = 720
 
-images = './images/'
-music = './music/'
+images = './images/' # where all images stored
+music = './music/'   # where all music and sounds stored
 
 wnd = pygame.display.set_mode((window_width, window_height ))
 
 clock = pygame.time.Clock()
 
+
+#defining colors for conveiniece
 white = (255, 255, 255)
 red   = (255, 0,   0)
 green = (0,   255, 0)
 blue  = (0,   0,   255)
 black = (0,   0,   0)
 
+# Load a bus images 
 bus_images = [
 	pygame.image.load(os.path.join(images, 'Hero/Bus/bus01.png')),
 	pygame.image.load(os.path.join(images, 'Hero/Bus/bus02.png')),
@@ -29,6 +32,7 @@ bus_images = [
 	pygame.image.load(os.path.join(images, 'Hero/Bus/bus04.png'))
 ]
 
+# Load a car images
 car_images = [
 	pygame.image.load(os.path.join(images, 'Hero/Car/car01.png')),
 	pygame.image.load(os.path.join(images, 'Hero/Car/car02.png')),
@@ -36,6 +40,10 @@ car_images = [
 	pygame.image.load(os.path.join(images, 'Hero/Car/car04.png'))
 ]
 
+# list of enemy images loading with usage of list copmprehensions
+# os.path.join is used for joining string './images/' with other strings like 'Enemies/dyno/walking' 
+# we will get something like './images/Enemies/dyno/walking/' and plus imagename that can vary
+# In the end we get './images/Enemies/dyno/walking/skeleton-walking_<number>.png'
 enemy_images = [ pygame.image.load(os.path.join(images, 'Enemies/dyno/walking','skeleton-walking_' + str(x) + '.png')) for x in range(21)]
 
 def get_size(image, width):
