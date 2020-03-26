@@ -39,7 +39,7 @@ car_images = [
 enemy_images = [ pygame.image.load(os.path.join(images, 'Enemies/dyno/walking','skeleton-walking_' + str(x) + '.png')) for x in range(21)]
 
 def get_size(image, width):
-	image_size = image.get_rect().size # (400,200)
+	image_size = image.get_rect().size # get something like this: (400,200)
 	return (width, int(image_size[1] * width / image_size[0]))
 	
 
@@ -52,8 +52,12 @@ def resize_image(image, width):
 	return pygame.transform.scale(image, image_size)
 
 
-
-car_images = list(map(resize_image, car_images, [ 200 for x in range(len(car_images)) ]))
+image_width = 200 
+car_images = list(map(resize_image, # Function that takes two arguments
+					  car_images,   # First argument will be from this list
+					  [ image_width for i in range(len(car_images)) ] ))	# Generate list that will be the second 
+																	  		#argument is taken from this list  
+				 
 enemy_images = list(map(resize_image, enemy_images, [ 200 for x in range(len(enemy_images)) ]))
 
 # for i in range(len(car_images)):
