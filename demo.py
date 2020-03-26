@@ -68,6 +68,9 @@ car_images = list(map(resize_image, # Function that takes two arguments
 				 
 enemy_images = list(map(resize_image, enemy_images, [ 200 for x in range(len(enemy_images)) ]))
 
+
+#old version of resizing images
+
 # for i in range(len(car_images)):
 # 	car_images[i] = resize_image((car_images[i], 200))
 
