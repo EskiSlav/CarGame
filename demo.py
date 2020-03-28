@@ -64,8 +64,9 @@ image_width = 200
 car_images = list(map(resize_image, # Function that takes two arguments
 					  car_images,   # First argument will be from this list
 					  [ image_width for i in range(len(car_images)) ] ))	# Generate list that will be the second 
-																	  		#argument is taken from this list  
-				 
+																	  		# argument is taken from this list  
+				
+
 enemy_images = list(map(resize_image, enemy_images, [ 200 for x in range(len(enemy_images)) ]))
 
 
@@ -74,6 +75,29 @@ enemy_images = list(map(resize_image, enemy_images, [ 200 for x in range(len(ene
 # for i in range(len(car_images)):
 # 	car_images[i] = resize_image((car_images[i], 200))
 
+
+class Sound():
+	def __init__(self):
+		self.background_music_standard = './music/bgmusic.mp3'
+		self.background_music_corona   = './music/corona.mp3'
+
+		self.boom = pygame.mixer.Sound('./music/boom.wav')
+		self.boom.set_volume(0.25)
+		
+		self.play_standard()
+
+	def play_standard(self):
+		pygame.mixer.music.load(self.background_music_standard)
+		pygame.mixer.music.set_volume(0.1)
+		pygame.mixer.music.play()
+
+	def play_corona(self):
+		pygame.mixer.music.load(self.background_music_corona)
+		pygame.mixer.music.set_volume(0.1)
+		pygame.mixer.music.play()
+
+	def crash(self):
+		self.boom.play()
 
 class Base():
 	def __init__(self, x, y, images):
@@ -101,6 +125,7 @@ class Enemy(Base):
 			int(window_height / 2),     # y
 			enemy_images)  				# enemy_images 
 
+sounds = Sound()
 car = Hero()
 enemy = Enemy()
 
@@ -131,6 +156,13 @@ while True:
 				vel_y -= vel
 			elif event.key == pygame.K_DOWN:
 				vel_y += vel
+				
+			#music section
+			elif event.key == pygame.K_p:
+				sounds.play_corona()
+			elif event.key == pygame.K_o:
+				sounds.play_standard()
+
 
 		elif event.type == pygame.KEYUP:
 			if event.key == pygame.K_RIGHT:
@@ -141,6 +173,8 @@ while True:
 				vel_y -= -vel
 			elif event.key == pygame.K_DOWN:
 				vel_y += -vel
+
+
 
 	# Car Animation
 	if pygame.time.get_ticks() > car_next_tick:
