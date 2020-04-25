@@ -70,12 +70,12 @@ def check_collision(hero, enemy):
 
 	if hero_rect.colliderect(enemy_rect) == 1:
 		sleep(1)
-		car.crash()
+		hero.crash()
 		enemy.restore_position()
 
 
 
-image_width = 200 
+image_width = 200
 car_images = list(map(resize_image, # Function that takes two arguments
 					  car_images,   # First argument will be from this list
 					  [ image_width for i in range(len(car_images)) ] ))	# Generate list that will be the second 
@@ -83,6 +83,8 @@ car_images = list(map(resize_image, # Function that takes two arguments
 				
 
 enemy_images = list(map(resize_image, enemy_images, [ 200 for x in range(len(enemy_images)) ]))
+
+menu_image = resize_image(menu_image, window_width)
 
 
 #old version of resizing images
@@ -111,7 +113,7 @@ class Background():
 		self.draw_lines()
 
 	def append_line(self):
-		if self.lines[-1].x < window_width:
+		while self.lines[-1].x < window_width:
 			self.lines.append(
 				pygame.Rect(self.lines[-1].x + self.line_width + self.line_interval,
 				int(window_height / 2) - int(self.line_height / 2),
@@ -187,104 +189,188 @@ class Enemy(Base):
 			int(window_width * 0.8),    # x
 			int(window_height / 2),     # y
 			enemy_images)  				# enemy_images 
+
 	def move(self, x=-5, y=0):
 		self.x += x
 		self.y += y
 
 	def restore_position(self):
-		self.x = window_width
-		self.y = int(window_height / 2)
+		self.x = window_width + 150
+		self.y = randint(0, window_height - self.rect.size[1])
 
 	def draw(self, frame):
 		if self.x + image_width < 0:
-			self.x = window_width + 150
-			self.y = randint(0, window_height - self.rect.size[1])
+			self.restore_position()
 		super().draw(frame)
 
-
 sounds = Sound()
-car = Hero()
-enemy = Enemy()
 bg = Background()
 
-print(bg.lines)
+def game_menu():
 
-x = window_width / 2
-y = window_height / 2
+	text_size = 100
+	text_resize_speed = 1
 
-vel = 3
-vel_x = 0
-vel_y = 0
-car_next_tick = pygame.time.get_ticks()
-enemy_next_tick = pygame.time.get_ticks()
-car_frame = 0
-enemy_frame = 0
-
-while True:
-
-	clock.tick(FPS)
-	
-	for event in pygame.event.get():
-		if event.type == pygame.QUIT:
-			exit()
-
-		elif event.type == pygame.KEYDOWN:
-			if event.key == pygame.K_RIGHT:
-				vel_x += vel
-			elif event.key == pygame.K_LEFT:
-				vel_x -= vel
-			elif event.key == pygame.K_UP:
-				vel_y -= vel
-			elif event.key == pygame.K_DOWN:
-				vel_y += vel
-				
-			#music section
-			elif event.key == pygame.K_p:
-				sounds.play_corona()
-			elif event.key == pygame.K_o:
-				sounds.play_standard()
+	intro = True
+	while intro:
+		for event in pygame.event.get():
+			if event.type == pygame.QUIT:
+				exit()
+		
+		if event.type == pygame.KEYDOWN:
+			if event.key == pygame.K_RETURN:
+				intro = False
 
 
-		elif event.type == pygame.KEYUP:
-			if event.key == pygame.K_RIGHT:
-				vel_x += -vel
-			elif event.key == pygame.K_LEFT:
-				vel_x -= -vel
-			elif event.key == pygame.K_UP:
-				vel_y -= -vel
-			elif event.key == pygame.K_DOWN:
-				vel_y += -vel
-
-	if is_out_of_screen(car):
-		sounds.crash()
-		car.crash()
-		car_next_tick = pygame.time.get_ticks()
-		enemy_next_tick = pygame.time.get_ticks()
+		textMenu        = pygame.font.Font('./fonts/Sen-Bold.ttf', 140)
+		textMenuSurface = textMenu.render("Main Menu", True, black)
+		textMenuRect    = textMenuSurface.get_rect()
+		textMenuRect.center = (int(window_width/2), int(window_height/6))
 
 
-
-	# Car Animation
-	if pygame.time.get_ticks() > car_next_tick:
-		if vel_x > 0:
-			car_next_tick += 80
-		elif vel_x < 0:
-			car_next_tick += 120
-		else:
-			car_next_tick += 100
-
-		car_frame = (car_frame + 1) % 4
-
-	#Enemy Animation
-	if pygame.time.get_ticks() > enemy_next_tick:
-		enemy_next_tick += 25
-		enemy_frame = (enemy_frame + 1) % 21
+		textEnter        = pygame.font.Font('./fonts/Sen-Bold.ttf', text_size) # Get Font
+		textEnterSurface = textEnter.render("Press Enter", True, black) # Get Rendered text
+		textEnterRect    = textEnterSurface.get_rect()
+		textEnterRect.center = (int(window_width/2), int(window_height/1.5)) # Set positions 
 
 
-	check_collision(car, enemy)
-	wnd.fill(white)
+		wnd.blit(menu_image, (0,0))
+		wnd.blit(textMenuSurface, textMenuRect)
+		wnd.blit(textEnterSurface, textEnterRect)
+
+		text_size += text_resize_speed
+
+		if text_size > 110:
+			text_resize_speed *= -1
+		elif text_size < 100:
+			text_resize_speed *= -1
+
+		pygame.display.update()
+
+		clock.tick(60)
+		
+def game_pause():
+	pause = True
+	while pause:
+		for event in pygame.event.get():
+			if event.type == pygame.QUIT:
+				exit()
+
+			if event.type == pygame.KEYDOWN:
+				if event.key == pygame.K_ESCAPE:
+					pause = False
+
+		textMenu        = pygame.font.Font('./fonts/Sen-Bold.ttf', 140)
+		textMenuSurface = textMenu.render("Pause", True, black)
+		textMenuRect    = textMenuSurface.get_rect()
+		textMenuRect.center = (int(window_width/2), int(window_height/4))
+
+		wnd.blit(textMenuSurface, textMenuRect)
+		pygame.display.update()
+
+def game_loop():
+
+	car = Hero()
+	enemy = Enemy()
+
+	x = window_width / 2
+	y = window_height / 2
+
+	vel = 3
+	vel_x = 0
+	vel_y = 0
+	car_next_tick = pygame.time.get_ticks()
+	enemy_next_tick = pygame.time.get_ticks()
+	car_frame = 0
+	enemy_frame = 0
+
 	bg.draw()
-	car.move(vel_x, vel_y)
 	car.draw(car_frame)
-	enemy.move()
 	enemy.draw(enemy_frame)
 	pygame.display.update()
+
+	sleep(0.5)
+
+	while True:
+
+		clock.tick(FPS)
+		
+		for event in pygame.event.get():
+			print(event)
+
+			if event.type == pygame.QUIT:
+				exit()
+
+			elif event.type == pygame.KEYUP and (not vel_x == 0 or not vel_y == 0):
+				if event.key == pygame.K_d:
+					vel_x += -vel
+				elif event.key == pygame.K_a:
+					vel_x -= -vel
+				elif event.key == pygame.K_w:
+					vel_y -= -vel
+				elif event.key == pygame.K_s:
+					vel_y += -vel
+
+			elif event.type == pygame.KEYDOWN:
+
+				if event.key == pygame.K_ESCAPE:
+					game_pause()
+					vel_y = vel_x = 0
+					enemy_next_tick = car_next_tick = pygame.time.get_ticks()
+
+				elif event.key == pygame.K_d:
+					vel_x += vel
+				elif event.key == pygame.K_a:
+					vel_x -= vel
+				elif event.key == pygame.K_w:
+					vel_y -= vel
+				elif event.key == pygame.K_s:
+					vel_y += vel
+					
+				#music section
+				elif event.key == pygame.K_p:
+					sounds.play_corona()
+				elif event.key == pygame.K_o:
+					sounds.play_standard()
+
+				
+
+
+			
+
+		if is_out_of_screen(car):
+			sounds.crash()
+			car.crash()
+			car_next_tick = pygame.time.get_ticks()
+			enemy_next_tick = pygame.time.get_ticks()
+
+
+
+		# Car Animation
+		if pygame.time.get_ticks() > car_next_tick:
+			if vel_x > 0:
+				car_next_tick += 80
+			elif vel_x < 0:
+				car_next_tick += 120
+			else:
+				car_next_tick += 100
+
+			car_frame = (car_frame + 1) % 4
+
+		#Enemy Animation
+		if pygame.time.get_ticks() > enemy_next_tick:
+			enemy_next_tick += 25
+			enemy_frame = (enemy_frame + 1) % 21
+
+
+		check_collision(car, enemy)
+		bg.draw()
+		car.move(vel_x, vel_y)
+		car.draw(car_frame)
+		enemy.move()
+		enemy.draw(enemy_frame)
+		pygame.display.update()
+
+
+game_menu()
+game_loop()
