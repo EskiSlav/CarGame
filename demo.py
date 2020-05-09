@@ -16,6 +16,7 @@ wnd = pygame.display.set_mode((window_width, window_height ))
 
 clock = pygame.time.Clock()
 
+max_score = score = 0
 
 #defining colors for conveiniece
 		# R    G    B
@@ -26,9 +27,12 @@ blue  = (0,   0,   255)
 black = (0,   0,   0)
 grey  = (150, 150, 150)
 
+
+score_text = pygame.font.Font('./fonts/Sen-Bold.ttf', 24)
+
 # Load a bus images 
 bus_images = [ pygame.image.load(os.path.join(images, 'Hero/Bus/bus0' + str(x) + '.png')) for x in range(1, 5) ]
-
+	 
 # Load a car images
 car_images = [ pygame.image.load(os.path.join(images, 'Hero/Car/car0' + str(x) + '.png'))  for x in range(1, 5)]
 
@@ -40,10 +44,21 @@ enemy_images = [ pygame.image.load(os.path.join(images, 'Enemies/dyno/walking','
 
 menu_image = pygame.image.load(os.path.join(images, 'menu/menu.jpg'))
 
+
+def display_score(score):
+	score_text_surface = score_text.render("Score: " + str(score) + "\nMax Score: " + str(max_score), True, black)
+	score_text_rect    = score_text_surface.get_rect()
+	score_text_rect.right = window_width - 10
+	score_text_rect.top   = 10
+	wnd.blit(score_text_surface, score_text_rect)
+
+def display_max_score(max_score):
+	pass
+
 def get_size(image, width):
 	image_size = image.get_rect().size # get something like this: (400,200)
 	return (width, int(image_size[1] * width / image_size[0]))
-	
+
 def resize_image(image, width):
 	image_size = get_size(image, width)
 	return pygame.transform.scale(image, image_size)
@@ -60,18 +75,23 @@ def is_out_of_screen(car):
 	return False
 
 def check_collision(hero, enemy):
-	enemy_rect = enemy.images[0].get_rect()
-	enemy_rect.x = enemy.x
-	enemy_rect.y = enemy.y
-
-	hero_rect  = hero.images[0].get_rect()
-	hero_rect.x = hero.x
-	hero_rect.y = hero.y
+	enemy_rect = enemy.rect
+	hero_rect  = hero.rect
 
 	if hero_rect.colliderect(enemy_rect) == 1:
-		sleep(1)
-		hero.crash()
-		enemy.restore_position()
+		return True
+
+	return False
+		
+def game_reset(hero, enemy):
+	sleep(1)
+	global score, max_score
+	if score > max_score:
+		max_score = score
+	score = 0
+	hero.crash()
+	enemy.restore_position()
+
 
 
 
@@ -85,13 +105,6 @@ car_images = list(map(resize_image, # Function that takes two arguments
 enemy_images = list(map(resize_image, enemy_images, [ 200 for x in range(len(enemy_images)) ]))
 
 menu_image = resize_image(menu_image, window_width)
-
-
-#old version of resizing images
-
-# for i in range(len(car_images)):
-# 	car_images[i] = resize_image((car_images[i], 200))
-
 
 class Background():
 	def __init__(self):
@@ -130,8 +143,6 @@ class Background():
 		for i in range(len(self.lines)):
 			self.lines[i] = self.lines[i].move(-5, 0)
 
-
-
 class Sound():
 	def __init__(self):
 		self.background_music_standard = './music/bgmusic.mp3'
@@ -161,19 +172,23 @@ class Base():
 		self.images = images
 		self.rect = images[0].get_rect()
 
+
 	def draw(self, frame):
 		wnd.blit(self.images[frame], (self.x, self.y))
-		# s = self.images[0].get_rect().size
-		# pygame.draw.rect(wnd, green, (self.x, self.y, s[0], s[1]))
-
+		# pygame.draw.rect(wnd, green, self.rect)
 
 class Hero(Base):
 	def __init__(self):
 		super().__init__(50, int(window_height / 2), car_images) # x, y, hero_images
-	
+		self.rect.size = (self.rect.size[0] - 40, self.rect.size[1] - 20) 
+		s = self.images[0].get_rect().size
+		self.rect.center = (self.x + int(s[0]/2), self.y + int(s[1]/2))
+
 	def move(self, x, y):
 		self.x += x
 		self.y += y
+		s = self.images[0].get_rect().size
+		self.rect.center = (self.x + int(s[0]/2), self.y + int(s[1]/2))
 
 	def restore_position(self):
 		self.x = 50
@@ -182,17 +197,22 @@ class Hero(Base):
 	def crash(self):
 		self.restore_position()
 
-
 class Enemy(Base):
 	def __init__(self):
 		super().__init__(
 			int(window_width * 0.8),    # x
 			int(window_height / 2),     # y
-			enemy_images)  				# enemy_images 
+			enemy_images)  				# enemy_images
+		self.rect.size = (self.rect.size[0] - 50, self.rect.size[1] - 45) 
+		s = self.images[0].get_rect().size
+		self.rect.center = (self.x + int(s[0]/2), self.y + int(s[1]/2))
 
 	def move(self, x=-5, y=0):
 		self.x += x
 		self.y += y
+		s = self.images[0].get_rect().size
+		self.rect.center = (self.x + int(s[0]/2), self.y + int(s[1]/2) - 10)
+
 
 	def restore_position(self):
 		self.x = window_width + 150
@@ -284,13 +304,15 @@ def game_loop():
 	car_frame = 0
 	enemy_frame = 0
 
+	global score, max_score
+
 	bg.draw()
 	car.draw(car_frame)
 	enemy.draw(enemy_frame)
 	pygame.display.update()
 
-	sleep(0.5)
 
+	sleep(0.5)
 	while True:
 
 		clock.tick(FPS)
@@ -332,10 +354,6 @@ def game_loop():
 					sounds.play_corona()
 				elif event.key == pygame.K_o:
 					sounds.play_standard()
-
-				
-
-
 			
 
 		if is_out_of_screen(car):
@@ -343,7 +361,6 @@ def game_loop():
 			car.crash()
 			car_next_tick = pygame.time.get_ticks()
 			enemy_next_tick = pygame.time.get_ticks()
-
 
 
 		# Car Animation
@@ -363,13 +380,24 @@ def game_loop():
 			enemy_frame = (enemy_frame + 1) % 21
 
 
-		check_collision(car, enemy)
+		
+
 		bg.draw()
 		car.move(vel_x, vel_y)
 		car.draw(car_frame)
 		enemy.move()
 		enemy.draw(enemy_frame)
+
+		score += 1
+		display_score(score)
+		display_max_score(max_score)
+
 		pygame.display.update()
+
+		if check_collision(car, enemy):
+			game_reset(car, enemy)
+
+
 
 
 game_menu()
