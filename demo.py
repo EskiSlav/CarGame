@@ -2,6 +2,7 @@ import pygame
 import os
 from time import sleep
 from random import randint
+from random import choice
 pygame.init()
 
 FPS = 60
@@ -43,17 +44,21 @@ car_images = [ pygame.image.load(os.path.join(images, 'Hero/Car/car0' + str(x) +
 enemy_images = [ pygame.image.load(os.path.join(images, 'Enemies/dyno/walking','skeleton-walking_' + str(x) + '.png')) for x in range(21)]
 
 menu_image = pygame.image.load(os.path.join(images, 'menu/menu.jpg'))
+cracks     = pygame.image.load("./images/cracks.png")
 
-
-def display_score(score):
-	score_text_surface = score_text.render("Score: " + str(score) + "\nMax Score: " + str(max_score), True, black)
+def display_score():
+	score_text_surface = score_text.render("Score: " + str(score), True, black)
 	score_text_rect    = score_text_surface.get_rect()
 	score_text_rect.right = window_width - 10
 	score_text_rect.top   = 10
 	wnd.blit(score_text_surface, score_text_rect)
 
-def display_max_score(max_score):
-	pass
+def display_max_score():
+	score_text_surface = score_text.render("Max Score: " + str(max_score), True, black)
+	score_text_rect    = score_text_surface.get_rect()
+	score_text_rect.right = window_width - 10
+	score_text_rect.top   = 30
+	wnd.blit(score_text_surface, score_text_rect)
 
 def get_size(image, width):
 	image_size = image.get_rect().size # get something like this: (400,200)
@@ -83,16 +88,28 @@ def check_collision(hero, enemy):
 
 	return False
 		
-def game_reset(hero, enemy):
-	sleep(1)
+
+def check_bullet_collision(bullet, enemy):
+	if enemy.rect.collidepoint(bullet.x, bullet.y):
+		return True
+	return False
+		
+
+
+def check_enemy_collision(enemies):
+	for i in range(len(enemies)):
+		for j in range(i + 1, len(enemies)):
+			while enemies[i].rect.colliderect(enemies[j].rect) == 1:
+				enemies[i].restore_position()
+
+
+def game_reset(hero):
 	global score, max_score
 	if score > max_score:
 		max_score = score
 	score = 0
 	hero.crash()
-	enemy.restore_position()
-
-
+	# enemy.restore_position()
 
 
 image_width = 200
@@ -105,6 +122,60 @@ car_images = list(map(resize_image, # Function that takes two arguments
 enemy_images = list(map(resize_image, enemy_images, [ 200 for x in range(len(enemy_images)) ]))
 
 menu_image = resize_image(menu_image, window_width)
+# cracks = pygame.transform.rotate(cracks, -45)
+# cracks_images = list(map(resize_image, [cracks for i in range(3)], [width for width in [200, 250, 300]]))
+
+# def draw_crack(image, x, y):
+# 	wnd.blit(image, (x,y))
+
+# def move_crack(x, y, vel_x=-5, vel_y=0):
+# 	return x + vel_x, y + vel_y
+
+# def get_random_crack():
+# 	# crack = choice(cracks_images)
+# 	return resize_image(cracks, randint(200, 400))
+
+
+
+class Bullet():
+	speed = 40
+	flying_bullets = []
+	def __init__(self, car):
+		self.x = car.x + car.images[0].get_rect().width
+		self.y = car.y + int(car.images[0].get_rect().height / 2)
+
+	def move(self):	
+		self.x += Bullet.speed
+
+	def draw(self):
+		# wnd.blit(self.image, (self.x, self.y))
+		pygame.draw.circle(wnd, black, (self.x, self.y), 5)
+
+	def is_out_of_screen(self):
+		if self.x > window_width:
+			return True
+		return False
+
+	@staticmethod
+	def draw_all_bullets():
+		for i, bullet in enumerate(Bullet.flying_bullets):
+			bullet.move()
+			bullet.draw()
+			if bullet.is_out_of_screen():
+				Bullet.flying_bullets.pop(i)
+				del bullet
+			
+			for i, bullet in enumerate(Bullet.flying_bullets):
+				for j, enemy in enumerate(Enemy.enemies):
+					if check_bullet_collision(bullet, enemy):
+						Bullet.flying_bullets.pop(i)
+						del bullet
+						enemy.minuis_health()
+						if not enemy.is_alive():
+							enemy.restore_position()
+						break
+
+
 
 class Background():
 	def __init__(self):
@@ -171,11 +242,16 @@ class Base():
 		self.y = y
 		self.images = images
 		self.rect = images[0].get_rect()
-
+		self.health = 100
 
 	def draw(self, frame):
 		wnd.blit(self.images[frame], (self.x, self.y))
 		# pygame.draw.rect(wnd, green, self.rect)
+
+	def is_alive(self):
+		if self.health > 0:
+			return True
+		return False
 
 class Hero(Base):
 	def __init__(self):
@@ -183,6 +259,9 @@ class Hero(Base):
 		self.rect.size = (self.rect.size[0] - 40, self.rect.size[1] - 20) 
 		s = self.images[0].get_rect().size
 		self.rect.center = (self.x + int(s[0]/2), self.y + int(s[1]/2))
+		self.shoot_interal = 400
+		self.next_shoot = 0
+
 
 	def move(self, x, y):
 		self.x += x
@@ -197,17 +276,26 @@ class Hero(Base):
 	def crash(self):
 		self.restore_position()
 
+	def shoot(self):
+		if self.next_shoot < pygame.time.get_ticks():
+			Bullet.flying_bullets.append(Bullet(self))
+			self.next_shoot = self.shoot_interal + pygame.time.get_ticks()
+
+
 class Enemy(Base):
+	enemies = []
+	speed = -5
 	def __init__(self):
 		super().__init__(
-			int(window_width * 0.8),    # x
+			int(window_width * 1.1),    # x
 			int(window_height / 2),     # y
 			enemy_images)  				# enemy_images
 		self.rect.size = (self.rect.size[0] - 50, self.rect.size[1] - 45) 
 		s = self.images[0].get_rect().size
 		self.rect.center = (self.x + int(s[0]/2), self.y + int(s[1]/2))
 
-	def move(self, x=-5, y=0):
+
+	def move(self, x=speed, y=0):
 		self.x += x
 		self.y += y
 		s = self.images[0].get_rect().size
@@ -215,13 +303,25 @@ class Enemy(Base):
 
 
 	def restore_position(self):
-		self.x = window_width + 150
+		self.health = 100
+		self.x = window_width + randint(200, 600)
 		self.y = randint(0, window_height - self.rect.size[1])
+		s = self.images[0].get_rect().size
+		self.rect.center = (self.x + int(s[0]/2), self.y + int(s[1]/2))
+
+	def minuis_health(self):
+		self.health -= 50
 
 	def draw(self, frame):
 		if self.x + image_width < 0:
 			self.restore_position()
 		super().draw(frame)
+
+	@staticmethod
+	def draw_all_enemies(frame):
+		for i, enemy in enumerate(Enemy.enemies):
+			enemy.move()
+			enemy.draw(frame)
 
 sounds = Sound()
 bg = Background()
@@ -291,7 +391,7 @@ def game_pause():
 def game_loop():
 
 	car = Hero()
-	enemy = Enemy()
+	Enemy.enemies = [ Enemy() for _ in range(5)]
 
 	x = window_width / 2
 	y = window_height / 2
@@ -303,22 +403,26 @@ def game_loop():
 	enemy_next_tick = pygame.time.get_ticks()
 	car_frame = 0
 	enemy_frame = 0
+	next_enemy_addition_score = 0
 
 	global score, max_score
 
+	# current_crack = get_random_crack()
+	# crack_x, crack_y = window_width * 2, 0 
+
 	bg.draw()
 	car.draw(car_frame)
-	enemy.draw(enemy_frame)
+	Enemy.draw_all_enemies(enemy_frame)
 	pygame.display.update()
 
+	
 
 	sleep(0.5)
 	while True:
-
+ 	
 		clock.tick(FPS)
 		
 		for event in pygame.event.get():
-			print(event)
 
 			if event.type == pygame.QUIT:
 				exit()
@@ -348,7 +452,11 @@ def game_loop():
 					vel_y -= vel
 				elif event.key == pygame.K_s:
 					vel_y += vel
-					
+				
+				if event.key == pygame.K_SPACE:
+					print(event)
+					car.shoot()
+
 				#music section
 				elif event.key == pygame.K_p:
 					sounds.play_corona()
@@ -379,26 +487,49 @@ def game_loop():
 			enemy_next_tick += 25
 			enemy_frame = (enemy_frame + 1) % 21
 
+		if score > next_enemy_addition_score:
+			Enemy.enemies.append(Enemy())
+			next_enemy_addition_score += 600
 
+		# if crack_x + current_crack.get_rect().size[0] < 0:
+		# 	crack_x = window_width * 1 #randint(2,4)
+		# 	current_crack = get_random_crack()
 		
 
+
+
 		bg.draw()
+
+		Bullet.draw_all_bullets()
+
 		car.move(vel_x, vel_y)
 		car.draw(car_frame)
-		enemy.move()
-		enemy.draw(enemy_frame)
+		Enemy.draw_all_enemies(enemy_frame)
 
+		check_enemy_collision(Enemy.enemies)
+		# Crack handle
+		# crack_x, crack_y = move_crack(crack_x, crack_y)
+		# draw_crack(current_crack, crack_x, crack_y)
+
+		# Score
 		score += 1
-		display_score(score)
-		display_max_score(max_score)
+		if score > max_score:
+			max_score = score
+		display_score()
+		display_max_score()
 
 		pygame.display.update()
 
-		if check_collision(car, enemy):
-			game_reset(car, enemy)
+		for i in range(len(Enemy.enemies)):
+			if check_collision(car, Enemy.enemies[i]):
+				sleep(1)
+				Enemy.enemies = [ Enemy() for _ in range(5) ]
+				game_reset(car)
+				next_enemy_addition_score = 500
+				break
 
 
 
 
-game_menu()
+# game_menu()
 game_loop()
