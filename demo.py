@@ -29,7 +29,8 @@ black = (0,   0,   0)
 grey  = (150, 150, 150)
 
 
-score_text = pygame.font.Font('./fonts/Sen-Bold.ttf', 24)
+text = pygame.font.Font('./fonts/Sen-Bold.ttf', 24)
+
 
 # Load a bus images 
 bus_images = [ pygame.image.load(os.path.join(images, 'Hero/Bus/bus0' + str(x) + '.png')) for x in range(1, 5) ]
@@ -47,18 +48,26 @@ menu_image = pygame.image.load(os.path.join(images, 'menu/menu.jpg'))
 cracks     = pygame.image.load("./images/cracks.png")
 
 def display_score():
-	score_text_surface = score_text.render("Score: " + str(score), True, black)
+	score_text_surface = text.render("Score: " + str(score), True, black)
 	score_text_rect    = score_text_surface.get_rect()
 	score_text_rect.right = window_width - 10
 	score_text_rect.top   = 10
 	wnd.blit(score_text_surface, score_text_rect)
 
 def display_max_score():
-	score_text_surface = score_text.render("Max Score: " + str(max_score), True, black)
+	score_text_surface = text.render("Max Score: " + str(max_score), True, black)
 	score_text_rect    = score_text_surface.get_rect()
 	score_text_rect.right = window_width - 10
 	score_text_rect.top   = 30
 	wnd.blit(score_text_surface, score_text_rect)
+
+def display_defeated_enemies():
+	de_text_surface = text.render("Defeated enemies: " + str(Hero.defeated_enemies), True, black)
+	de_text_rect    = de_text_surface.get_rect()
+	de_text_rect.right = window_width - 10
+	de_text_rect.top   = 50
+	wnd.blit(de_text_surface, de_text_rect)
+
 
 def get_size(image, width):
 	image_size = image.get_rect().size # get something like this: (400,200)
@@ -170,9 +179,11 @@ class Bullet():
 					if check_bullet_collision(bullet, enemy):
 						Bullet.flying_bullets.pop(i)
 						del bullet
-						enemy.minuis_health()
+						enemy.minus_health()
 						if not enemy.is_alive():
 							enemy.restore_position()
+							Hero.defeated_enemies += 1
+							print(Hero.defeated_enemies)
 						break
 
 
@@ -254,6 +265,7 @@ class Base():
 		return False
 
 class Hero(Base):
+	defeated_enemies = 0
 	def __init__(self):
 		super().__init__(50, int(window_height / 2), car_images) # x, y, hero_images
 		self.rect.size = (self.rect.size[0] - 40, self.rect.size[1] - 20) 
@@ -284,7 +296,7 @@ class Hero(Base):
 
 class Enemy(Base):
 	enemies = []
-	speed = -5
+	speed = -10
 	def __init__(self):
 		super().__init__(
 			int(window_width * 1.1),    # x
@@ -309,7 +321,7 @@ class Enemy(Base):
 		s = self.images[0].get_rect().size
 		self.rect.center = (self.x + int(s[0]/2), self.y + int(s[1]/2))
 
-	def minuis_health(self):
+	def minus_health(self):
 		self.health -= 50
 
 	def draw(self, frame):
@@ -322,6 +334,11 @@ class Enemy(Base):
 		for i, enemy in enumerate(Enemy.enemies):
 			enemy.move()
 			enemy.draw(frame)
+
+	@staticmethod
+	def restore_all_enemies_position():
+		for enemy in Enemy.enemies:
+			enemy.restore_position()
 
 sounds = Sound()
 bg = Background()
@@ -396,7 +413,7 @@ def game_loop():
 	x = window_width / 2
 	y = window_height / 2
 
-	vel = 3
+	vel = 9
 	vel_x = 0
 	vel_y = 0
 	car_next_tick = pygame.time.get_ticks()
@@ -438,7 +455,7 @@ def game_loop():
 					vel_y += -vel
 
 			elif event.type == pygame.KEYDOWN:
-
+				print(event)
 				if event.key == pygame.K_ESCAPE:
 					game_pause()
 					vel_y = vel_x = 0
@@ -467,6 +484,8 @@ def game_loop():
 		if is_out_of_screen(car):
 			sounds.crash()
 			car.crash()
+			Enemy.restore_all_enemies_position()
+			Hero.defeated_enemies = 0
 			car_next_tick = pygame.time.get_ticks()
 			enemy_next_tick = pygame.time.get_ticks()
 
@@ -517,6 +536,7 @@ def game_loop():
 			max_score = score
 		display_score()
 		display_max_score()
+		display_defeated_enemies()
 
 		pygame.display.update()
 
@@ -525,6 +545,7 @@ def game_loop():
 				sleep(1)
 				Enemy.enemies = [ Enemy() for _ in range(5) ]
 				game_reset(car)
+				Hero.defeated_enemies = 0
 				next_enemy_addition_score = 500
 				break
 
