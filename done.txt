@@ -1,7 +1,0 @@
- - created def move_lines
-   - added new element to self.lines 
-    \_ def append_line
-   - pop first line when out of screen
-    \_ def pop_line
-
-
