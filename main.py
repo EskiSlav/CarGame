@@ -6,6 +6,7 @@ from random import choice
 pygame.init()
 
 FPS = 60
+NUMBER_OF_ENEMIES = 5 
 
 window_width = 1280
 window_height = 720
@@ -77,16 +78,7 @@ def resize_image(image, width):
 	image_size = get_size(image, width)
 	return pygame.transform.scale(image, image_size)
 
-def is_out_of_screen(car):
-	size = car.images[0].get_rect().size
-	# x
-	if car.x < 0 - int(size[0] / 2) or car.x > window_width - int(size[0] / 2):
-		return True
-	# y
-	if car.y < 0 - int(size[1] / 2) or car.y > window_height - int(size[1] / 2):
-		return True
 
-	return False
 
 def check_collision(hero, enemy):
 	enemy_rect = enemy.rect
@@ -118,7 +110,6 @@ def game_reset(hero):
 		max_score = score
 	score = 0
 	hero.crash()
-	# enemy.restore_position()
 
 
 image_width = 200
@@ -131,19 +122,6 @@ car_images = list(map(resize_image, # Function that takes two arguments
 enemy_images = list(map(resize_image, enemy_images, [ 200 for x in range(len(enemy_images)) ]))
 
 menu_image = resize_image(menu_image, window_width)
-# cracks = pygame.transform.rotate(cracks, -45)
-# cracks_images = list(map(resize_image, [cracks for i in range(3)], [width for width in [200, 250, 300]]))
-
-# def draw_crack(image, x, y):
-# 	wnd.blit(image, (x,y))
-
-# def move_crack(x, y, vel_x=-5, vel_y=0):
-# 	return x + vel_x, y + vel_y
-
-# def get_random_crack():
-# 	# crack = choice(cracks_images)
-# 	return resize_image(cracks, randint(200, 400))
-
 
 
 class Bullet():
@@ -274,6 +252,16 @@ class Hero(Base):
 		self.shoot_interal = 400
 		self.next_shoot = 0
 
+	def is_out_of_screen(self):
+		size = self.images[0].get_rect().size
+		# x
+		if self.x < 0 - int(size[0] / 2) or self.x > window_width - int(size[0] / 2):
+			return True
+		# y
+		if self.y < 0 - int(size[1] / 2) or self.y > window_height - int(size[1] / 2):
+			return True
+
+		return False
 
 	def move(self, x, y):
 		self.x += x
@@ -339,6 +327,7 @@ class Enemy(Base):
 	def restore_all_enemies_position():
 		for enemy in Enemy.enemies:
 			enemy.restore_position()
+
 
 sounds = Sound()
 bg = Background()
@@ -408,7 +397,7 @@ def game_pause():
 def game_loop():
 
 	car = Hero()
-	Enemy.enemies = [ Enemy() for _ in range(5)]
+	Enemy.enemies = [ Enemy() for _ in range(NUMBER_OF_ENEMIES)]
 
 	x = window_width / 2
 	y = window_height / 2
@@ -423,9 +412,6 @@ def game_loop():
 	next_enemy_addition_score = 0
 
 	global score, max_score
-
-	# current_crack = get_random_crack()
-	# crack_x, crack_y = window_width * 2, 0 
 
 	bg.draw()
 	car.draw(car_frame)
@@ -481,7 +467,8 @@ def game_loop():
 					sounds.play_standard()
 			
 
-		if is_out_of_screen(car):
+		if car.is_out_of_screen():
+			score = 0
 			sounds.crash()
 			car.crash()
 			Enemy.restore_all_enemies_position()
@@ -506,15 +493,10 @@ def game_loop():
 			enemy_next_tick += 25
 			enemy_frame = (enemy_frame + 1) % 21
 
+		# Add the number of enemies as the score grows 
 		if score > next_enemy_addition_score:
 			Enemy.enemies.append(Enemy())
 			next_enemy_addition_score += 600
-
-		# if crack_x + current_crack.get_rect().size[0] < 0:
-		# 	crack_x = window_width * 1 #randint(2,4)
-		# 	current_crack = get_random_crack()
-		
-
 
 
 		bg.draw()
@@ -526,14 +508,12 @@ def game_loop():
 		Enemy.draw_all_enemies(enemy_frame)
 
 		check_enemy_collision(Enemy.enemies)
-		# Crack handle
-		# crack_x, crack_y = move_crack(crack_x, crack_y)
-		# draw_crack(current_crack, crack_x, crack_y)
 
 		# Score
 		score += 1
 		if score > max_score:
 			max_score = score
+
 		display_score()
 		display_max_score()
 		display_defeated_enemies()
@@ -542,8 +522,9 @@ def game_loop():
 
 		for i in range(len(Enemy.enemies)):
 			if check_collision(car, Enemy.enemies[i]):
+				sounds.crash()
 				sleep(1)
-				Enemy.enemies = [ Enemy() for _ in range(5) ]
+				Enemy.enemies = [ Enemy() for _ in range(NUMBER_OF_ENEMIES) ]
 				game_reset(car)
 				Hero.defeated_enemies = 0
 				next_enemy_addition_score = 500
@@ -552,5 +533,5 @@ def game_loop():
 
 
 
-# game_menu()
+game_menu()
 game_loop()
