@@ -1,6 +1,6 @@
 # CarGame
 Hi! This is a game that your children would like to play. Let's check it out!
-
+![game_picture]()
 ## How to play
 Movement: WASD<br>
 Shoot: \<Space\>
